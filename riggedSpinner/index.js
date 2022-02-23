@@ -1,19 +1,93 @@
-const canvas = document.createElement("canvas");
-const X = canvas.getContext("2d");
+import { Component, Elm, InputElm } from "./elements.js";
+
 const TAU = Math.PI * 2;
-let then = performance.now();
-let width = innerWidth;
-let height = innerHeight;
+class SpinnerScreen extends Component {
+    constructor() {
+        super("spinnerScreen");
+        this.spinnerCanvas = new SpinnerCanvas().appendTo(this.elm);
+    }
 
-canvas.width = width
-canvas.height = height;
+    applyConfig(config) {
+        this.spinnerCanvas.applyConfig(config);
+    }
+}
 
-document.body.appendChild(canvas);
+class SpinnerCanvas extends Component {
+    constructor() {
+        super("spinnerCanvas");
+        this.canvas = document.createElement("canvas");
+        this.X = this.canvas.getContext("2d");
+        this.then = performance.now();
 
-addEventListener("resize", () => {
-    canvas.width = width = innerWidth;
-    canvas.height = height = innerHeight;
-});
+        this.elm.append(this.canvas);
+
+        this.spinner = new Spinner();
+    }
+
+    appendTo(elm) {
+        this.setup();
+        return super.appendTo(elm);
+    }
+
+    applyConfig(config) {
+        this.spinner.applyConfig(config);
+    }
+
+    setup() {
+        this.width = innerWidth;
+        this.height = innerHeight;
+
+        addEventListener("resize", () => {
+            this.canvas.width = this.width = innerWidth;
+            this.canvas.height = this.height = innerHeight;
+        });
+
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let dragging = false;
+
+        this.canvas.addEventListener("mousedown", ev => {
+            dragging = true;
+            lastMouseX = ev.clientX;
+            lastMouseY = ev.clientY;
+            this.spinner.mouseDown();
+        });
+        addEventListener("mouseup", () => {
+            if (dragging) {
+                this.spinner.mouseRelease();
+            }
+            dragging = false;
+        });
+
+        addEventListener("mousemove", ev => {
+            if (dragging) {
+                this.spinner.mouseDrag(lastMouseX, lastMouseY, ev.clientX, ev.clientY);
+            }
+
+            lastMouseX = ev.clientX;
+            lastMouseY = ev.clientY;
+        });
+
+        requestAnimationFrame(now => this.reqanf(now));
+    }
+
+    /**
+     * @param {number} now 
+     */
+    reqanf(now) {
+        const deltaTime = (now - this.then) / 1000;
+        this.then = now;
+
+        this.X.clearRect(0, 0, this.width, this.height);
+        this.spinner.render(this.X, deltaTime);
+
+        requestAnimationFrame(now => this.reqanf(now));
+    }
+}
+
 
 class RotationPhysics {
     constructor() {
@@ -24,6 +98,14 @@ class RotationPhysics {
         this.time = 0;
         this.maxTime = 0;
         this.fixedMaxTime = 0;
+        this.velocityThreshold = 0;
+    }
+
+    /**
+     * @param {number} threshold 
+     */
+    setVelocityTreshold(threshold) {
+        this.velocityThreshold = threshold;
     }
 
     /**
@@ -40,7 +122,7 @@ class RotationPhysics {
         }
         this.time = 0;
 
-        if (Math.abs(velocity) > 0.7) {
+        if (Math.abs(velocity) > this.velocityThreshold) {
             this._fixFrictionToTarget(targetRotation);
         } else {
             this.fixedFrictionalAcceleration = this.frictionalAcceleration;
@@ -80,14 +162,22 @@ class Spinner {
         /** @type {SpinnerItem[]} */
         this.items = [];
         this.rotation = 0;
+        this.targetElementIndex = 0;
         this.physics = new RotationPhysics();
         this.lastDragVelocity = 0;
     }
 
+    applyConfig(config) {
+        this.targetElementIndex = config.target;
+        this.items = config.spinnerItems;
+        this.physics.velocityThreshold = config.velocityThreshold;
+    }
+
     /**
+     * @param {CanvasRenderingContext2D} X
      * @param {number} deltaTime 
      */
-    render(deltaTime) {
+    render(X, deltaTime) {
         if (!this.disablePhysics) {
             this.rotation = this.physics.advanceRotation(deltaTime);
         }
@@ -101,10 +191,7 @@ class Spinner {
         const centerY = innerHeight / 2;
         const radius = Math.min(innerWidth, innerHeight) / 2 - 16;
 
-        let totalChance = 0;
-        for (const item of this.items) {
-            totalChance += item.chance;
-        }
+        const totalChance = this._getWeightsTotal();
 
         let currPercent = 0;
 
@@ -177,12 +264,35 @@ class Spinner {
     }
 
     mouseRelease() {
+        const totalChance = this._getWeightsTotal();
+        let targetRotation = 0;
+        let size = 0;
+        let i = 0;
+
+        for (const item of this.items) {
+            if (i == this.targetElementIndex) {
+                size = item.chance / totalChance;
+                break;
+            }
+
+            targetRotation += item.chance / totalChance;
+            i++;
+        }
+
         this.disablePhysics = false;
         this.physics.setState(
             this.rotation,
             Math.sign(this.lastDragVelocity) * Math.sqrt(Math.abs(this.lastDragVelocity * 30)),
-            0.005
+            targetRotation + Math.random() * size
         );
+    }
+
+    _getWeightsTotal() {
+        let totalChance = 0;
+        for (const item of this.items) {
+            totalChance += item.chance;
+        }
+        return totalChance;
     }
 }
 
@@ -197,53 +307,119 @@ class SpinnerItem {
     }
 }
 
-let lastMouseX = 0;
-let lastMouseY = 0;
-let dragging = false;
+class ConfigScreen extends Component {
+    constructor() {
+        super("configScreen");
 
-addEventListener("mousedown", ev => {
-    dragging = true;
-    lastMouseX = ev.clientX;
-    lastMouseY = ev.clientY;
-    spinner.mouseDown();
-});
-addEventListener("mouseup", () => {
-    dragging = false;
-    spinner.mouseRelease();
-});
+        this.pannelOpen = false;
 
-addEventListener("mousemove", ev => {
-    if (dragging) {
-        spinner.mouseDrag(lastMouseX, lastMouseY, ev.clientX, ev.clientY);
+        this.elm.append(
+            new Elm().class("openButton", "clickable").append("Config")
+                .on("click", () => {
+                    if (this.pannelOpen = !this.pannelOpen) {
+                        this.panel.class("open");
+                    } else {
+                        this.panel.removeClass("open");
+                    }
+                }),
+
+            this.panel = new Elm().class("pannel").append(
+                new Elm("h1").append("Config"),
+
+                new Elm("h2").append("Items"),
+                new Elm().append("The items on the spinner. First input is title, second is size."),
+                this.spinnerItemsInput = new SpinnerItemInputList(),
+
+                new Elm("h2").append("Target"),
+                new Elm().append("Which item number to (almost) always land on"),
+                this.targetRotationInput = new InputElm().setType("number").setValue(0),
+
+                new Elm("h2").append("Velocity Threshold"),
+                new Elm().append("How fast does the spinner need to spin until rigging is applied. Rigging at low velocities may look unnatural."),
+                this.velocityThresholdInput = new InputElm().setType("number").setValue(0.7),
+
+                new Elm().append(
+                    new Elm("button").class("bold").append("Apply").on("click", () => {
+                        spinnerScreen.applyConfig(this.getConfig());
+                    })
+                )
+            )
+        );
+
+        for (let i = 0; i < 5; i++) {
+            this.spinnerItemsInput.addItem(new SpinnerItemInput("Item " + i, 1));
+        }
     }
 
-    lastMouseX = ev.clientX;
-    lastMouseY = ev.clientY;
-});
-
-const spinner = new Spinner();
-// spinner.items.push(new SpinnerItem("Pass", 1));
-// spinner.items.push(new SpinnerItem("Fail", 99));
-
-for (let i = 0; i < 20; i++) {
-    spinner.items.push(new SpinnerItem("Test" + i, Math.random() * 3 + 1));
-}
-// for (let i = 0; i < 100; i++) {
-//     spinner.items.push(new SpinnerItem("Test" + i, 1));
-// }
-
-/**
- * requestAnimationFrame handler
- * @param {number} now
- */
-function reqanf(now) {
-    const deltaTime = (now - then) / 1000;
-    then = now;
-
-    X.clearRect(0, 0, width, height);
-    spinner.render(deltaTime);
-
-    requestAnimationFrame(reqanf);
+    getConfig() {
+        return {
+            // @ts-ignore
+            target: parseFloat(this.targetRotationInput.getValue()),
+            spinnerItems: this.spinnerItemsInput.getItems(),
+            // @ts-ignore
+            velocityThreshold: parseFloat(this.velocityThresholdInput.getValue())
+        }
+    }
 }
 
-requestAnimationFrame(reqanf);
+class SpinnerItemInput extends Component {
+    /**
+     * @param {string} [name] 
+     * @param {number} [weight]
+     */
+    constructor(name, weight) {
+        super("spinnerItemInput");
+        this.elm.append(
+            this.nameInput = new InputElm(),
+            this.weightInput = new InputElm().setType("number")
+        );
+        if (name) {
+            this.nameInput.setValue(name);
+        }
+        if (weight) {
+            this.weightInput.setValue(weight);
+        }
+    }
+
+    getItem() {
+        // @ts-ignore
+        return new SpinnerItem(this.nameInput.getValue(), parseFloat(this.weightInput.getValue()));
+    }
+}
+
+class SpinnerItemInputList extends Component {
+    constructor() {
+        super("editableList");
+        this.elm.append(
+            this.itemsElm = new Elm("ol"),
+            new Elm("button").append("Add item").on("click", () => {
+                this.addItem(new SpinnerItemInput("Title", 1));
+            })
+        );
+        this.items = [];
+    }
+
+    /**
+     * @param {SpinnerItemInput} item 
+     */
+    addItem(item) {
+        const listItemElm = new Elm("li").class("listItemElm").append(
+            item, new Elm().append("remove").class("remove", "clickable").on("click", () => {
+                this.items.splice(this.items.indexOf(item), 1);
+                listItemElm.remove();
+            })
+        ).appendTo(this.itemsElm);
+        this.items.push(item);
+    }
+
+    getItems() {
+        const items = [];
+        for (const item of this.items) {
+            items.push(item.getItem());
+        }
+        return items;
+    }
+}
+
+const spinnerScreen = new SpinnerScreen().appendTo(document.body);
+spinnerScreen.applyConfig(new ConfigScreen().appendTo(document.body).getConfig());

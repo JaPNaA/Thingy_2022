@@ -1,0 +1,47 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+.spinnerScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.configScreen {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    background: #fff;
+    padding: 8px;
+    border: 1px solid black;
+    border-radius: 4px;
+}
+
+.clickable {
+    cursor: pointer;
+    user-select: none;
+    color: #0818ff;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.configScreen .pannel {
+    display: none;
+}
+
+.configScreen .pannel.open {
+    display: block;
+}
+
+.editableList .listItemElm .remove {
+    display: inline-block;
+}
+
+.spinnerItemInput {
+    display: inline-block;
+}
