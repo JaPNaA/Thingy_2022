@@ -332,7 +332,7 @@ class ConfigScreen extends Component {
 
                 new Elm("h2").append("Target"),
                 new Elm().append("Which item number to (almost) always land on"),
-                this.targetRotationInput = new InputElm().setType("number").setValue(0),
+                this.targetRotationInput = new InputElm().setType("number").setValue(1),
 
                 new Elm("h2").append("Velocity Threshold"),
                 new Elm().append("How fast does the spinner need to spin until rigging is applied. Rigging at low velocities may look unnatural."),
@@ -347,14 +347,14 @@ class ConfigScreen extends Component {
         );
 
         for (let i = 0; i < 5; i++) {
-            this.spinnerItemsInput.addItem(new SpinnerItemInput("Item " + i, 1));
+            this.spinnerItemsInput.addItem(new SpinnerItemInput("Item " + (i + 1), 1));
         }
     }
 
     getConfig() {
         return {
             // @ts-ignore
-            target: parseFloat(this.targetRotationInput.getValue()),
+            target: parseFloat(this.targetRotationInput.getValue() - 1),
             spinnerItems: this.spinnerItemsInput.getItems(),
             // @ts-ignore
             velocityThreshold: parseFloat(this.velocityThresholdInput.getValue())
