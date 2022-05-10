@@ -1,4 +1,4 @@
-import { TextFromDiffs } from "@shared/TextFromDiffs.js";
+import { TextFromDiffs } from "./shared/TextFromDiffs.js";
 
 const websocket = new WebSocket(location.origin.replace("http", "ws"));
 const textFromDiffs = new TextFromDiffs();
