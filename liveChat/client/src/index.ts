@@ -1,4 +1,5 @@
-import { TextFromDiffs } from "./shared/TextFromDiffs.js";
+import { TextDiff, TextFromDiffs } from "./shared/TextFromDiffs.js";
+import { splitCommandStr } from "./shared/utils.js";
 
 const websocket = new WebSocket(location.origin.replace("http", "ws"));
 const textFromDiffs = new TextFromDiffs();
@@ -7,8 +8,13 @@ websocket.addEventListener("open", function () {
     websocket.send("clear");
 });
 
-websocket.addEventListener("message", function() {
-    //
+websocket.addEventListener("message", function (event) {
+    const [command, data] = splitCommandStr(event.data as string);
+    if (command === "edit") {
+        textFromDiffs.setText(textarea.value);
+        textFromDiffs.applyDiff(JSON.parse(data));
+        textarea.value = textFromDiffs.getText();
+    }
 });
 
 const textarea = document.querySelector("textarea")!;
@@ -23,25 +29,26 @@ textarea.addEventListener("beforeinput", function (event) {
 });
 
 textarea.addEventListener("input", function (event) {
-    const cursorPosition = textarea.selectionStart;
-    let editData;
+    const cursorSelectStart = textarea.selectionStart;
+    const cursorSelectEnd = textarea.selectionEnd;
+    let editData: TextDiff;
 
     if (lastCursorSelectEnd > lastCursorSelectStart) { // replacement
         editData = {
-            position: lastCursorSelectStart,
-            endPosition: lastCursorSelectEnd,
-            text: textarea.value.slice(lastCursorSelectStart, cursorPosition)
-        };        
-    } else if (textarea.value.length > lastTextLength) { // insertion
+            start: lastCursorSelectStart,
+            end: lastCursorSelectEnd,
+            text: textarea.value.slice(lastCursorSelectStart, cursorSelectStart)
+        };
+    } else if (cursorSelectStart > lastCursorSelectStart) { // insertion
         editData = {
-            position: lastCursorSelectEnd,
-            endPosition: lastCursorSelectStart,
-            text: textarea.value.slice(lastCursorSelectEnd, cursorPosition)
+            start: lastCursorSelectEnd,
+            end: lastCursorSelectStart,
+            text: textarea.value.slice(lastCursorSelectEnd, cursorSelectStart)
         };
     } else { // deletion
         editData = {
-            position: cursorPosition,
-            endPosition: lastCursorSelectEnd,
+            start: cursorSelectStart,
+            end: lastCursorSelectEnd,
             text: ""
         };
     }
@@ -50,6 +57,6 @@ textarea.addEventListener("input", function (event) {
         websocket.send("edit:" + JSON.stringify(editData));
     }
 
-    lastCursorSelectEnd = cursorPosition;
+    lastCursorSelectEnd = cursorSelectStart;
     lastTextLength = textarea.value.length;
 });

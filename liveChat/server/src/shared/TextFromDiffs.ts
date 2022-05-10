@@ -15,6 +15,10 @@ export class TextFromDiffs {
         return this._text;
     }
 
+    public setText(text: string) {
+        this._text = text;
+    }
+
     public applyDiff(diff: TextDiff) {
         const before = this._text.slice(0, diff.start);
         const after = this._text.slice(diff.end);
