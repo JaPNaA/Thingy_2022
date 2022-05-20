@@ -47,9 +47,9 @@ const X = canvas.getContext("2d");
 
 function blobOfImage(image) {
     return new Promise(res => {
-        canvas.width = image.width;
-        canvas.height = image.height;
-        X.clearRect(0, 0, image.width, image.height);
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        X.clearRect(0, 0, image.naturalWidth, image.naturalHeight);
         X.drawImage(image, 0, 0);
         canvas.toBlob((blob) => {
             res(blob);
