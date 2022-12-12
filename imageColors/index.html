@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Image Colors </title>
+    <style>
+        img {
+            max-width: 60vw;
+            max-height: 60vh;
+        }
+    </style>
+</head>
+
+<body>
+    <h1> Image Colors </h1>
+    This is a small webapp that lets you analyze an image's colors by sorting them.
+
+    <h2> Paste image below </h2>
+    <div contenteditable="true" id="imagePaste" style="border: 1px solid #888"></div>
+    <button id="processButton"> Process image </button>
+    <h2> Image colors sorted by... </h2>
+    <canvas id="colorsSorted"></canvas>
+    <script src="index.js"></script>
+</body>
+
+</html>
