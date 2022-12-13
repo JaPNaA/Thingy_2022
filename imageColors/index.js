@@ -5,17 +5,17 @@ const colorsSortedCanvas = document.getElementById("colorsSorted");
 
 function sortByValue(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
-    return v * 100 + Math.round(h / 36) + Math.round(s * 10) / 100;
+    return v * 100 + s / 10;
 }
 
 function sortByHue(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
-    return Math.round(h / 36) * 36 + Math.round(s * 10) / 100 + v / 100;
+    return Math.round(h / 36) * 36 + Math.round(s * 10) / 100;
 }
 
 function sortBySaturation(r, g, b) {
     const [h, s, v] = rgbToHsv(r, g, b);
-    return s * 100 + v + Math.round(h / 36) / 100;
+    return s * 100 + Math.round(h / 36) / 100;
 }
 
 function processImageAllMethods() {
@@ -35,53 +35,63 @@ function processImageAllMethods() {
     colorsSortedCanvas.width = image.width * 3 + padding * 4;
     colorsSortedCanvas.height = image.height + titleHeight + padding;
 
+    // hue / value
     processImage(imageData, X, sortByHue, sortByValue, 0, titleHeight + padding);
+    // saturation / value
     processImage(imageData, X, sortBySaturation, sortByValue, image.width + padding * 2, titleHeight + padding);
-    processImage(imageData, X, sortByValue, sortByHue, image.width * 2 + padding * 4, titleHeight + padding);
+    // saturation / hue
+    processImage(imageData, X, sortBySaturation, sortByHue, image.width * 2 + padding * 4, titleHeight + padding);
 
     X.fillStyle = "#000";
     X.font = titleHeight + "px Arial";
 
     X.fillText("hue / value", 0, titleHeight - 2);
     X.fillText("saturation / value", image.width + padding * 2, titleHeight - 2);
-    X.fillText("value / hue", image.width * 2 + padding * 4, titleHeight - 2);
+    X.fillText("saturation / hue", image.width * 2 + padding * 4, titleHeight - 2);
 }
 
 /**
  * @param {ImageData} imageData
  * @param {CanvasRenderingContext2D} X
  * @param {(r: number, g: number, b: number) => number} sortMethod 
- * @param {((r: number, g: number, b: number) => number) | null} secondSortMethod
+ * @param {((r: number, g: number, b: number) => number)} secondSortMethod
  * @param {number} x x position on canvas to put result
  * @param {number} y y position on canvas to put result
  */
 function processImage(imageData, X, sortMethod, secondSortMethod, x, y) {
-    /** @type {[number, number, number, number][]} */
+    /** @type {[number, number, number, number, number][]} */
     const pixels = [];
     for (let i = 0; i < imageData.data.length; i += 4) {
         const a = 1 - imageData.data[i + 3] / 255;
         const r = imageData.data[i] + 255 * a, g = imageData.data[i + 1] + 255 * a, b = imageData.data[i + 2] + 255 * a;
-        pixels.push([sortMethod(r, g, b), r, g, b]);
+        pixels.push([sortMethod(r, g, b), secondSortMethod(r, g, b), r, g, b]);
     }
 
-    pixels.sort((a, b) => (a[0] - b[0]));
-
-    // re-sort rows by second sort method
-    if (secondSortMethod) {
+    for (let times = 0; times < 4; times++) {
+        // sort rows by second sort method
         for (let i = 0; i < imageData.height; i++) {
             const row = pixels.slice(i * imageData.width, (i + 1) * imageData.width);
-            for (let j = 0; j < row.length; j++) {
-                row[j][0] = secondSortMethod(row[j][1], row[j][2], row[j][3]);
-            }
-            row.sort((a, b) => (a[0] - b[0]));
+            row.sort((a, b) => (a[1] - b[1]));
             for (let j = 0; j < row.length; j++) {
                 pixels[i * imageData.width + j] = row[j];
+            }
+        }
+
+        // sort columns by first sort method
+        for (let i = 0; i < imageData.width; i++) {
+            const column = [];
+            for (let j = 0; j < imageData.height; j++) {
+                column.push(pixels[j * imageData.width + i]);
+            }
+            column.sort((a, b) => (a[0] - b[0]));
+            for (let j = 0; j < column.length; j++) {
+                pixels[j * imageData.width + i] = column[j];
             }
         }
     }
 
     for (let i = 0; i < imageData.data.length / 4; i++) {
-        const r = pixels[i][1], g = pixels[i][2], b = pixels[i][3];
+        const r = pixels[i][2], g = pixels[i][3], b = pixels[i][4];
         imageData.data[i * 4] = r;
         imageData.data[i * 4 + 1] = g;
         imageData.data[i * 4 + 2] = b;
