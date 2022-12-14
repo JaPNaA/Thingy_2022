@@ -1,5 +1,9 @@
+/** @type {HTMLDivElement} */ // @ts-ignore
+const imagePasteArea = document.getElementById("imagePaste");
 /** @type {HTMLButtonElement} */ // @ts-ignore
 const processButton = document.getElementById("processButton");
+/** @type {HTMLInputElement} */ // @ts-ignore
+const fileInput = document.getElementById("fileInput");
 /** @type {HTMLCanvasElement} */ // @ts-ignore
 const colorsSortedCanvas = document.getElementById("colorsSorted");
 
@@ -174,12 +178,37 @@ function numberToPixel(number) {
 }
 
 function getImage() {
-    const image = document.getElementById("imagePaste")?.querySelector("img");
+    const image = imagePasteArea.querySelector("img");
     if (!image) {
         throw new Error("No image in imagePaste");
     }
     return image;
 }
+
+fileInput.addEventListener("change", function () {
+    const files = fileInput.files;
+    if (!files) {
+        return;
+    }
+    const file = files[0];
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+        /** @type {string} */ // @ts-ignore
+        const dataURL = reader.result;
+        const image = document.createElement("img");
+        image.src = dataURL;
+        try {
+            getImage();
+            if (confirm("Replace current image?")) {
+                imagePasteArea.innerHTML = "";
+                imagePasteArea.appendChild(image);
+            }
+        } catch (err) {
+            imagePasteArea.appendChild(image);
+        }
+    });
+    reader.readAsDataURL(file);
+});
 
 processButton.addEventListener("click", function () {
     try {
