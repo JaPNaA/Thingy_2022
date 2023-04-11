@@ -25,6 +25,15 @@ addEventListener("keydown", function () {
     // @ts-ignore
     if ([paste, download].includes(document.activeElement)) { return; }
     paste.focus();
+
+    const range = document.createRange();
+    range.selectNodeContents(paste);
+    range.collapse(false);
+    const selection = getSelection();
+    if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
 });
 
 function downloadBlob(blob, filename) {

@@ -10,7 +10,16 @@
 </head>
 
 <body>
-    <div id="paste" contenteditable=""></div>
+    <div id="paste" style="padding-bottom: 50vh;" contenteditable="">
+        <div style="padding: 8px; color: #535353;">
+            <p> Paste images here. Text will be ignored. </p>
+            <p> Once you paste all the images you want to download, click the "Download Image(s)" button at the bottom.
+                This app will download all your images as a ZIP (or just the single image if you pasted one image). </p>
+            <p> Due to technical (web security) complications, you can't download copy-pasted images from different
+                sites. The app designed for screenshots only. </p>
+        </div>
+        <br>
+    </div>
     <button id="download">Download Image(s)</button>
     <script src="jszip.min.js"></script>
     <script src="script.js"></script>
