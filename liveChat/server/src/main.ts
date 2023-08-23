@@ -34,6 +34,7 @@ function parseMessage(message: string) {
             break;
 
         case "clear":
+        case "send":
             currentText.clear();
             break;
     }
