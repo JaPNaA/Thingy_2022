@@ -1,3 +1,5 @@
+import { diffStrings } from "./diffStrings.js";
+import { Elm } from "./elements.js";
 import { TextDiff, TextFromDiffs } from "./shared/TextFromDiffs.js";
 import { splitCommandStr } from "./shared/utils.js";
 
@@ -10,53 +12,38 @@ websocket.addEventListener("open", function () {
 
 websocket.addEventListener("message", function (event) {
     const [command, data] = splitCommandStr(event.data as string);
-    if (command === "edit") {
-        textFromDiffs.setText(textarea.value);
-        textFromDiffs.applyDiff(JSON.parse(data));
-        textarea.value = textFromDiffs.getText();
+    switch (command) {
+        case "edit":
+            textFromDiffs.setText(input.innerText);
+            textFromDiffs.applyDiff(JSON.parse(data));
+            input.innerText = textFromDiffs.getText();
+            break;
+        case "send":
+            new Elm().class("message").append(data).appendTo(messages);
+            break;
     }
 });
 
-const textarea = document.querySelector("textarea")!;
+const input: HTMLElement = document.getElementById("input")!;
+const messages: HTMLElement = document.getElementById("messages")!;
 
-let lastCursorSelectEnd = 0;
-let lastCursorSelectStart = 0;
-let lastTextLength = 0;
+input.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+        websocket.send("send:" + input.innerText);
+        new Elm().class("message", "self").append(input.innerText).appendTo(messages);
 
-textarea.addEventListener("beforeinput", function (event) {
-    lastCursorSelectEnd = textarea.selectionEnd;
-    lastCursorSelectStart = textarea.selectionStart;
+        event.preventDefault();
+        input.innerText = "";
+    }
 });
 
-textarea.addEventListener("input", function (event) {
-    const cursorSelectStart = textarea.selectionStart;
-    const cursorSelectEnd = textarea.selectionEnd;
-    let editData: TextDiff;
+let lastTextareaValue = input.innerText;
+input.addEventListener("input", function (event) {
+    const newValue = input.innerText;
+    const diff = diffStrings(lastTextareaValue, newValue);
+    lastTextareaValue = newValue;
 
-    if (lastCursorSelectEnd > lastCursorSelectStart) { // replacement
-        editData = {
-            start: lastCursorSelectStart,
-            end: lastCursorSelectEnd,
-            text: textarea.value.slice(lastCursorSelectStart, cursorSelectStart)
-        };
-    } else if (cursorSelectStart > lastCursorSelectStart) { // insertion
-        editData = {
-            start: lastCursorSelectEnd,
-            end: lastCursorSelectStart,
-            text: textarea.value.slice(lastCursorSelectEnd, cursorSelectStart)
-        };
-    } else { // deletion
-        editData = {
-            start: cursorSelectStart,
-            end: lastCursorSelectEnd,
-            text: ""
-        };
+    if (diff) {
+        websocket.send("edit:" + JSON.stringify(diff));
     }
-
-    if (editData) {
-        websocket.send("edit:" + JSON.stringify(editData));
-    }
-
-    lastCursorSelectEnd = cursorSelectStart;
-    lastTextLength = textarea.value.length;
 });
