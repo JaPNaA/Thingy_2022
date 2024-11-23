@@ -1,6 +1,7 @@
+import { TextDiff } from "./shared/textDiffs";
 
 /** Diffs a string with a single difference (added/removed/replaced substring). */
-export function diffStrings(original: string, currentValue: string): { start: number, end: number, text: string } | null {
+export function diffStrings(original: string, currentValue: string): TextDiff | null {
     let hadChange = false;
     let sameToIndex: number;
     const maxLength = Math.max(original.length, currentValue.length);
