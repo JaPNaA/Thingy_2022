@@ -7,7 +7,10 @@ expressApp.use(express.static("../client/"));
 
 // const messagesMap: Map<number, string> = new Map();
 
-const server = expressApp.listen(8080);
+const server = expressApp.listen(8080, "127.0.0.1", () => {
+    console.log("Listening on 127.0.0.1:8080");
+});
+
 const wsServer = new WebSocketServer({ server: server });
 
 wsServer.on('connection', function (thisClient) {

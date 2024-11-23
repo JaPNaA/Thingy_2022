@@ -16,5 +16,9 @@ body {
     height: auto;
     padding: 8px;
     border: 1px solid #888;
+    color: #5b78d7;
 }
 
+.message.self {
+    color: #5b78d7;
+}

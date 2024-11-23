@@ -21,13 +21,16 @@ websocket.addEventListener("message", function (event) {
             message.elm.replaceContents(message.text);
             break;
         }
-        case "send":
-            addMessage(data);
+        case "send": {
+            const [messageId, finalMessage] = splitCommandStr(data);
+            const message = messagesMap.get(parseInt(messageId));
+            if (message) {
+                message.elm.replaceContents(finalMessage);
+            }
             break;
+        }
         case "newId":
             activeMessageId = parseInt(data);
-            const elm = addMessageSelf(lastTextareaValue);
-            messagesMap.set(parseInt(data), { text: lastTextareaValue, elm });
             break;
         case "new": {
             const [id, text] = splitCommandStr(data);
@@ -51,10 +54,11 @@ const messages: HTMLElement = document.getElementById("messages")!;
 
 input.addEventListener("keydown", function (event) {
     if (event.key === "Enter" && !event.shiftKey) {
-        websocket.send("send:" + input.innerText);
+        websocket.send(`send:${activeMessageId}:${input.innerText}`);
         addMessageSelf(input.innerText);
 
         event.preventDefault();
+        isActive = false;
         input.innerText = "";
     }
 });
