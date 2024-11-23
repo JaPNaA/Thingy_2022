@@ -8,7 +8,7 @@ body {
     white-space: pre-wrap;
 }
 
-#input {
+.input {
     box-sizing: border-box;
     width: 100%;
     min-height: 1em;
@@ -16,9 +16,8 @@ body {
     height: auto;
     padding: 8px;
     border: 1px solid #888;
-    color: #5b78d7;
 }
 
-.message.self {
+.self {
     color: #5b78d7;
 }

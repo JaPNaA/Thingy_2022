@@ -36,6 +36,7 @@ websocket.addEventListener("message", function (event) {
             const [id, text] = splitCommandStr(data);
             const elm = addMessage(text);
             messagesMap.set(parseInt(id), { text, elm });
+            addInputIfNotActive();
             break;
         }
     }
@@ -45,37 +46,64 @@ function addMessage(message: string) {
     return new Elm().class("message").append(message).appendTo(messages);
 }
 
-function addMessageSelf(message: string) {
-    return addMessage(message).class("self");
+function convertInputToMessage() {
+    if (!input) { return; }
+    input.removeClass("input");
+    input.removeAttribute("contenteditable");
+    input.class("message");
+    input = null;
 }
 
-const input: HTMLElement = document.getElementById("input")!;
+function addInputIfNotActive() {
+    if (isActive) { return; }
+    if (input) {
+        input.remove();
+    }
+    input = createInput().appendTo(messages);
+    input.getHTMLElement().focus();
+}
+
+let input: Elm<"div"> | null = createInput();
+
 const messages: HTMLElement = document.getElementById("messages")!;
+input.appendTo(messages);
 
-input.addEventListener("keydown", function (event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-        websocket.send(`send:${activeMessageId}:${input.innerText}`);
-        addMessageSelf(input.innerText);
+let lastTextareaValue = "";
 
-        event.preventDefault();
-        isActive = false;
-        input.innerText = "";
-    }
-});
+function createInput() {
+    const input = new Elm("div")
+        .class("input", "self")
+        .attribute("contenteditable", "plaintext-only");
 
-let lastTextareaValue = input.innerText;
-input.addEventListener("input", function (event) {
-    const newValue = input.innerText;
+    input.on("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            if (!isActive) { return; }
 
-    if (isActive) {
-        if (activeMessageId !== undefined) {
-            const diff = diffStrings(lastTextareaValue, newValue);
-            if (diff) { websocket.send("edit:" + activeMessageId + ":" + JSON.stringify(diff)); }
-            lastTextareaValue = newValue;
+            const inputElm = input.getHTMLElement();
+            websocket.send(`send:${activeMessageId}:${inputElm.innerText}`);
+            isActive = false;
+            convertInputToMessage();
+            addInputIfNotActive();
         }
-    } else if (newValue) {
-        websocket.send("new:" + newValue);
-        lastTextareaValue = newValue;
-        isActive = true;
-    }
-});
+    });
+
+    input.on("input", function () {
+        const inputElm = input.getHTMLElement();
+        const newValue = inputElm.innerText;
+
+        if (isActive) {
+            if (activeMessageId !== undefined) {
+                const diff = diffStrings(lastTextareaValue, newValue);
+                if (diff) { websocket.send("edit:" + activeMessageId + ":" + JSON.stringify(diff)); }
+                lastTextareaValue = newValue;
+            }
+        } else if (newValue) {
+            websocket.send("new:" + newValue);
+            lastTextareaValue = newValue;
+            isActive = true;
+        }
+    });
+
+    return input;
+}
