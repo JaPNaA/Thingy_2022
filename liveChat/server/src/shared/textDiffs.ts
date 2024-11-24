@@ -1,11 +1,13 @@
-export interface TextDiff {
-    start: number;
-    end: number;
-    text: string;
-};
+/**
+ * 0: text
+ * 1: start
+ * 2: end (default = start)
+ */
+export type TextDiff = [string, number, number?];
 
 export function textFromDiff(text: string, diff: TextDiff): string {
-    const before = text.slice(0, diff.start);
-    const after = text.slice(diff.end);
-    return before + diff.text + after;
+    const [newText, start, end] = diff;
+    const before = text.slice(0, start);
+    const after = text.slice(end ?? start);
+    return before + newText + after;
 }

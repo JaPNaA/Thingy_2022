@@ -24,18 +24,24 @@ export function diffStrings(original: string, currentValue: string): TextDiff | 
         }
     }
     if (sameToIndexRev <= 1) {
-        return {
-            start: sameToIndex,
-            end: maxLength,
-            text: currentValue.slice(sameToIndex)
-        };
+        return createTextDiff(
+            currentValue.slice(sameToIndex),
+            sameToIndex,
+            lastValueLen
+        );
     }
 
-    console.log(sameToIndex, sameToIndexRev);
+    return createTextDiff(
+        currentValue.slice(sameToIndex, 1 - sameToIndexRev),
+        sameToIndex,
+        lastValueLen + 1 - sameToIndexRev
+    );
+}
 
-    return {
-        start: sameToIndex,
-        end: original.length + 1 - sameToIndexRev,
-        text: currentValue.slice(sameToIndex, 1 - sameToIndexRev),
-    };
+function createTextDiff(text: string, start: number, end: number): TextDiff {
+    if (start == end) {
+        return [text, start];
+    } else {
+        return [text, start, end];
+    }
 }
